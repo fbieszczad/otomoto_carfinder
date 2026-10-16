@@ -1,11 +1,14 @@
 """Pętla łapacza: co kilka minut przegląda wyszukiwania (kilka stron, od najnowszych) i odkłada nowe ogłoszenia."""
 from dataclasses import dataclass, field
+import json
 import logging
 from pathlib import Path
 import random
+import threading
 import time
 import webbrowser
 
+from . import filters as F
 from . import site as S
 from .panel import Panel, load_token
 from .store import Store
@@ -15,6 +18,8 @@ log = logging.getLogger('otomoto')
 MAX_SINGLE_NOTIFICATIONS = 5     # więcej nowych naraz → jedno zbiorcze powiadomienie
 REQUEST_GAP = (1.5, 3.5)         # s między zapytaniami do otomoto
 MAX_BACKOFF = 30 * 60
+CATALOG_MAX_AGE = 7 * 24 * 3600
+SHIPPED_CATALOG = Path(__file__).resolve().parent.parent / 'catalog.json'
 COMMANDS = {'fav': 'fav', 'ulubione': 'fav', 'seen': 'seen', 'widzialem': 'seen', 'widziałem': 'seen',
             'reject': 'rejected', 'odrzuc': 'rejected', 'odrzuć': 'rejected', 'new': 'new'}
 
@@ -82,6 +87,11 @@ class Watcher:
         self.paused = False
         self.panel_urls = (None, None)
         self.last_ok = None
+        self.wake = threading.Event()     # zmiana wyszukiwań w panelu → sprawdź od razu
+
+    def active_searches(self):
+        """Wyszukiwania z panelu (włączone) + linki z ustawień aplikacji."""
+        return [(s['name'], s['url']) for s in self.store.searches(enabled_only=True)] + list(self.cfg.searches)
 
     # --- powiadomienia ---
     def notify_new(self, ad, search):
@@ -133,7 +143,7 @@ class Watcher:
         self.check += 1
         started = time.monotonic()
         fresh, drops, pages = [], [], 0
-        for name, url in self.cfg.searches:
+        for name, url in self.active_searches():
             baseline = self.store.get_meta(f'baseline:{url}') is None
             seen_here = 0
             for page in range(1, self.cfg.pages + 1):
@@ -178,7 +188,7 @@ class Watcher:
 
     def status(self, text):
         counts = self.store.counts()['status']
-        fields = {'Nowe': counts['new'], 'Ulubione': counts['fav'], 'Wyszukiwania': len(self.cfg.searches)}
+        fields = {'Nowe': counts['new'], 'Ulubione': counts['fav'], 'Wyszukiwania': len(self.active_searches())}
         if self.last_ok:
             fields['Ostatnie sprawdzenie'] = self.last_ok
         if self.panel_urls[0]:
@@ -190,7 +200,10 @@ class Watcher:
     def loop(self):
         while not self.ctx.stopping:
             self.handle_commands()
-            if not self.paused:
+            self.wake.clear()
+            if not self.paused and not self.active_searches():
+                self.status('Dodaj wyszukiwanie w panelu (zakładka „Wyszukiwania”)')
+            elif not self.paused:
                 self.status(f'Sprawdzam… (#{self.check + 1})')
                 try:
                     self.run_check()
@@ -207,10 +220,33 @@ class Watcher:
             self.status('Wstrzymany z telefonu' if self.paused else
                         f'Czekam — następne sprawdzenie o {time.strftime("%H:%M", time.localtime(time.time() + delay))}')
             end = time.monotonic() + delay
-            while not self.ctx.stopping and time.monotonic() < end:
+            while not self.ctx.stopping and time.monotonic() < end and not self.wake.is_set():
                 self.handle_commands()
                 if not self.ctx.sleep(min(5, max(0.1, end - time.monotonic()))):
                     break
+
+
+def load_catalog(data_dir, fetch=S.fetch):
+    """Katalog filtrów: świeży z otomoto (raz na tydzień), w razie problemu ostatni zapisany albo dołączony do skryptu."""
+    cached = Path(data_dir) / 'katalog.json'
+    try:
+        if time.time() - cached.stat().st_mtime < CATALOG_MAX_AGE:
+            return json.loads(cached.read_text(encoding='utf-8'))
+    except (OSError, ValueError):
+        pass
+    try:
+        catalog = F.catalog_from_html(fetch(F.BASE))
+        cached.write_text(json.dumps(catalog, ensure_ascii=False), encoding='utf-8')
+        log.info('Katalog filtrów otomoto odświeżony: %s marek.', len(catalog['makes']))
+        return catalog
+    except Exception as exc:
+        log.warning('Nie udało się odświeżyć katalogu filtrów (%s) — używam zapisanego.', str(exc)[:120])
+    for path in (cached, SHIPPED_CATALOG):
+        try:
+            return json.loads(path.read_text(encoding='utf-8'))
+        except (OSError, ValueError):
+            continue
+    return {}
 
 
 def run(ctx):
@@ -219,7 +255,9 @@ def run(ctx):
     data_dir.mkdir(parents=True, exist_ok=True)
     store = Store(data_dir / 'ogloszenia.db')
     watcher = Watcher(ctx, cfg, store)
+    catalog = load_catalog(data_dir)
     panel = Panel(store, load_token(data_dir), port=cfg.port, lan=cfg.lan, searches=cfg.searches,
+                  catalog=lambda: catalog, on_searches=watcher.wake.set,
                   on_change=lambda ad_id, body: log.info('PANEL — %s: %s', ad_id, ', '.join(f'{k}={v}' for k, v in body.items())[:120]))
     try:
         panel.start()
@@ -231,8 +269,11 @@ def run(ctx):
             webbrowser.open(watcher.panel_urls[0])
     except OSError as exc:
         log.warning('Nie udało się uruchomić panelu na porcie %s (%s) — zmień port w ustawieniach. Łapanie działa dalej.', cfg.port, exc)
-    log.info('Łapacz: %s wyszukiwań, co %s min, %s stron(y) każdego (od najnowszych).', len(cfg.searches), cfg.interval, cfg.pages)
-    ctx.notify('Łapacz Otomoto działa', f'{len(cfg.searches)} wyszukiwań, sprawdzanie co {cfg.interval} min.', event='started',
+    count = len(watcher.active_searches())
+    log.info('Łapacz: %s wyszukiwań, co %s min, %s stron(y) każdego (od najnowszych).', count, cfg.interval, cfg.pages)
+    if not count:
+        log.warning('Brak wyszukiwań — dodaj je w panelu (zakładka „Wyszukiwania”). Łapacz zacznie od razu po zapisaniu.')
+    ctx.notify('Łapacz Otomoto działa', f'{count} wyszukiwań, sprawdzanie co {cfg.interval} min.', event='started',
                click=watcher.panel_urls[1] or None)
     try:
         watcher.loop()

@@ -13,6 +13,7 @@
     --accent: #5b82f0; --fav: #fbbf24; --ok: #4ade80; --bad: #f87171; --new: #38bdf8;
   }
   * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
   body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.4 system-ui, -apple-system, 'Segoe UI', sans-serif; }
   header { position: sticky; top: 0; z-index: 5; background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(8px);
            border-bottom: 1px solid var(--line); padding: 10px 16px; }
@@ -53,6 +54,60 @@
            vertical-align: middle; background: var(--new); color: #04131c; }
   .empty { grid-column: 1 / -1; text-align: center; color: var(--muted); padding: 40px 0; }
   .stamp { color: var(--muted); font-size: 12px; }
+  .views { display: flex; gap: 6px; }
+  .view { border: 1px solid var(--line); background: var(--card); color: var(--text); border-radius: 8px; padding: 7px 12px; font: inherit;
+          font-weight: 600; cursor: pointer; }
+  .view.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .view b { font-weight: 500; opacity: .8; margin-left: 3px; }
+  #searchView { max-width: 900px; margin: 0 auto; padding: 12px 16px 60px; }
+  .srow { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-bottom: 10px;
+          display: grid; grid-template-columns: 1fr auto; gap: 6px 10px; align-items: center; }
+  .srow.off { opacity: .55; }
+  .srow .name { font-weight: 700; font-size: 16px; }
+  .srow .sum { color: var(--muted); font-size: 13.5px; grid-column: 1 / -1; }
+  .srow .btns { display: flex; gap: 6px; flex-wrap: wrap; grid-column: 1 / -1; }
+  .btn { border: 1px solid var(--line); background: #0a0d13; color: var(--text); border-radius: 8px; padding: 8px 12px; font: inherit;
+         font-size: 14px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  .btn.danger { color: var(--bad); }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .switch { display: inline-flex; align-items: center; gap: 6px; font-size: 13.5px; color: var(--muted); cursor: pointer; }
+  .sheet { position: fixed; inset: 0; z-index: 20; background: rgba(0, 0, 0, .6); display: flex; justify-content: center; align-items: flex-start;
+           overflow-y: auto; padding: 24px 12px; }
+  .sheet[hidden] { display: none; }
+  .form { background: var(--card); border: 1px solid var(--line); border-radius: 14px; width: min(760px, 100%); padding: 16px 16px 0; }
+  .form h2 { margin: 0 0 12px; font-size: 18px; display: flex; justify-content: space-between; align-items: center; }
+  .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 14px; }
+  .grid .full { grid-column: 1 / -1; }
+  .field label, .field .lbl { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; font-weight: 600; }
+  .field input[type=text], .field input[type=number], .field select { width: 100%; background: #0a0d13; color: var(--text);
+         border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px; font: inherit; }
+  .pair { display: flex; gap: 6px; }
+  .pills { display: flex; flex-wrap: wrap; gap: 6px; }
+  .pill { border: 1px solid var(--line); background: #0a0d13; color: var(--text); border-radius: 999px; padding: 6px 11px; font: inherit;
+          font-size: 13.5px; cursor: pointer; }
+  .pill.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 25%, #0a0d13); }
+  .pick { position: relative; }
+  .pick .chosen { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 4px; }
+  .pick .chosen span { background: color-mix(in srgb, var(--accent) 25%, #0a0d13); border: 1px solid var(--accent); border-radius: 999px;
+                       padding: 3px 4px 3px 10px; font-size: 13px; display: inline-flex; align-items: center; gap: 2px; }
+  .pick .chosen button { border: 0; background: none; color: var(--text); cursor: pointer; font-size: 14px; padding: 0 5px; }
+  .pick ul { position: absolute; left: 0; right: 0; top: 100%; z-index: 5; margin: 4px 0 0; padding: 4px; list-style: none; max-height: 260px;
+             overflow: auto; background: var(--card); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,.5); }
+  .pick li { padding: 7px 10px; border-radius: 6px; cursor: pointer; display: flex; justify-content: space-between; gap: 8px; }
+  .pick li:hover, .pick li.hl { background: color-mix(in srgb, var(--accent) 20%, transparent); }
+  .pick li small { color: var(--muted); }
+  details.more { grid-column: 1 / -1; border-top: 1px solid var(--line); padding-top: 10px; }
+  details.more summary { cursor: pointer; font-weight: 600; color: var(--muted); margin-bottom: 10px; }
+  .foot { position: sticky; bottom: 0; background: var(--card); border-top: 1px solid var(--line); margin: 16px -16px 0; padding: 12px 16px;
+          display: flex; gap: 8px; align-items: center; flex-wrap: wrap; border-radius: 0 0 14px 14px; }
+  .foot .info { flex: 1 1 200px; font-size: 14px; }
+  .foot .info b { font-size: 16px; }
+  .warn { color: var(--fav); }
+  .mini { display: flex; gap: 6px; overflow-x: auto; margin-top: 8px; }
+  .mini a { flex: none; width: 120px; color: var(--text); text-decoration: none; font-size: 12px; }
+  .mini img { width: 120px; height: 80px; object-fit: cover; border-radius: 6px; display: block; background: #0a0d13; }
+  @media (max-width: 560px) { .grid { grid-template-columns: 1fr; } .sheet { padding: 0; } .form { border-radius: 0; min-height: 100%; } }
   @media (max-width: 420px) { main { grid-template-columns: 1fr; padding: 10px; } .top img { width: 104px; height: 78px; } }
 </style>
 </head>
@@ -60,8 +115,12 @@
 <header>
   <div class="bar">
     <h1>🚗 Łapacz Otomoto</h1>
-    <span class="stamp" id="stamp"></span>
+    <nav class="views">
+      <button class="view on" id="vAds">Ogłoszenia</button>
+      <button class="view" id="vSearch">🔎 Wyszukiwania <b id="sCount"></b></button>
+    </nav>
   </div>
+  <div id="adsControls">
   <div class="tabs" id="tabs"></div>
   <div class="bar" style="margin-top:8px">
     <input type="search" id="q" placeholder="Szukaj: model, miasto, notatka…">
@@ -74,9 +133,19 @@
       <option value="mileage">Przebieg rosnąco</option>
       <option value="year">Rocznik od najnowszego</option>
     </select>
+    <span class="stamp" id="stamp"></span>
+  </div>
   </div>
 </header>
 <main id="list"></main>
+<section id="searchView" hidden>
+  <div class="bar" style="margin-bottom:12px">
+    <button class="btn primary" id="addSearch">+ Nowe wyszukiwanie</button>
+    <span class="stamp">Każde wyszukiwanie to zestaw filtrów jak na otomoto. Łapacz sprawdza wszystkie włączone.</span>
+  </div>
+  <div id="searchList"></div>
+</section>
+<div class="sheet" id="editor" hidden></div>
 <script>
 const LABELS = {new: 'Nowe', fav: 'Ulubione', seen: 'Widziane', rejected: 'Odrzucone', '': 'Wszystkie'};
 const ORDER = ['new', 'fav', 'seen', 'rejected', ''];
@@ -166,6 +235,228 @@ $('search').onchange = () => { state.search = $('search').value; refresh(); };
 document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
 setInterval(() => { if (!document.hidden) refresh(); }, 60000);
 refresh();
+</script>
+<script>
+/* ---------- Wyszukiwania: lista i edytor filtrów (jak na otomoto) ---------- */
+let catalog = null, searches = [];
+const post = (path, body) => api(path, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+
+function showView(view) {
+  state.view = view;
+  $('vAds').classList.toggle('on', view !== 'searches');
+  $('vSearch').classList.toggle('on', view === 'searches');
+  $('list').hidden = $('adsControls').hidden = view === 'searches';
+  $('searchView').hidden = view !== 'searches';
+  try { localStorage.setItem('panel', JSON.stringify(state)); } catch (e) {}
+  if (view === 'searches') loadSearches(); else refresh();
+}
+$('vAds').onclick = () => showView('ads');
+$('vSearch').onclick = () => showView('searches');
+
+async function loadCatalog() {
+  if (!catalog) catalog = await api('/api/catalog');
+  return catalog;
+}
+
+async function loadSearches() {
+  searches = (await api('/api/searches')).searches;
+  $('sCount').textContent = searches.filter(s => s.enabled).length || '';
+  $('searchList').replaceChildren(...(searches.length ? searches.map(searchRow) :
+    [el('div', {className: 'empty', textContent: 'Nie masz jeszcze wyszukiwań. Dodaj pierwsze — ustawisz filtry jak na otomoto.'})]));
+}
+
+function searchRow(s) {
+  const toggle = el('input', {type: 'checkbox', checked: s.enabled, disabled: !!s.readonly});
+  toggle.onchange = () => post('/api/searches', {id: s.id, name: s.name, filters: s.filters, enabled: toggle.checked}).then(loadSearches);
+  return el('div', {className: 'srow' + (s.enabled ? '' : ' off')},
+    el('div', {className: 'name', textContent: s.name}),
+    el('label', {className: 'switch'}, toggle, s.enabled ? 'śledzę' : 'wyłączone'),
+    el('div', {className: 'sum', textContent: `${s.summary} · złapanych: ${s.ads}`}),
+    el('div', {className: 'btns'},
+      s.readonly ? el('span', {className: 'stamp', textContent: 'Link z ustawień aplikacji — zmienisz go w aplikacji.'}) : [
+        el('button', {className: 'btn', textContent: '✎ Edytuj', onclick: () => openEditor(s)}),
+        el('button', {className: 'btn', textContent: '⧉ Kopiuj', onclick: () => openEditor({...s, id: null, name: s.name + ' (kopia)'})}),
+        el('button', {className: 'btn danger', textContent: '🗑 Usuń', onclick: async () => {
+          if (confirm(`Usunąć wyszukiwanie „${s.name}”? Złapane ogłoszenia zostaną.`)) { await api('/api/searches/' + s.id, {method: 'DELETE'}); loadSearches(); }
+        }})],
+      el('a', {className: 'btn', href: s.url, target: '_blank', rel: 'noopener noreferrer', textContent: '↗ Otwórz na otomoto'})));
+}
+$('addSearch').onclick = () => openEditor({id: null, name: '', filters: {}, enabled: true});
+
+/* Wybór wielu wartości z listą do przeszukania (marka, model, kraj…). */
+function multiPick(placeholder, getOptions, values, onChange) {
+  const box = el('div', {className: 'pick'});
+  const chosen = el('div', {className: 'chosen'});
+  const input = el('input', {type: 'text', placeholder, autocomplete: 'off'});
+  const list = el('ul', {hidden: true});
+  let hl = 0;
+  const fold = t => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ł/g, 'l');
+  const names = () => Object.fromEntries(getOptions().map(o => [o.id, o.label || o.name]));
+  function draw() {
+    const n = names();
+    chosen.replaceChildren(...values.map(v => el('span', {}, n[v] || v, el('button', {type: 'button', textContent: '×', title: 'Usuń',
+      onclick: () => { values.splice(values.indexOf(v), 1); onChange(values); draw(); }}))));
+    input.disabled = !getOptions().length;
+  }
+  function open() {
+    const q = fold(input.value.trim());
+    const opts = getOptions().filter(o => !values.includes(o.id) && (!q || fold(o.label || o.name).includes(q))).slice(0, 80);
+    hl = Math.min(hl, Math.max(0, opts.length - 1));
+    list.replaceChildren(...opts.map((o, i) => el('li', {className: i === hl ? 'hl' : '', onmousedown: e => { e.preventDefault(); pick(o.id); }},
+      el('span', {textContent: o.label || o.name}), o.count != null ? el('small', {textContent: fmt(o.count)}) : null)));
+    list.hidden = !opts.length;
+    list.opts = opts;
+  }
+  function pick(id) { values.push(id); input.value = ''; onChange(values); draw(); list.hidden = true; }
+  input.onfocus = input.oninput = () => { hl = 0; open(); };
+  input.onclick = () => { if (list.hidden) open(); };
+  input.onblur = () => setTimeout(() => { list.hidden = true; }, 120);
+  input.onkeydown = e => {
+    const opts = list.opts || [];
+    if (e.key === 'ArrowDown') { hl = Math.min(hl + 1, opts.length - 1); open(); e.preventDefault(); }
+    else if (e.key === 'ArrowUp') { hl = Math.max(hl - 1, 0); open(); e.preventDefault(); }
+    else if (e.key === 'Enter' && opts[hl]) { pick(opts[hl].id); e.preventDefault(); }
+    else if (e.key === 'Escape') { list.hidden = true; }
+    else if (e.key === 'Backspace' && !input.value && values.length) { values.pop(); onChange(values); draw(); }
+  };
+  box.append(chosen, input, list);
+  box.redraw = draw;
+  draw();
+  return box;
+}
+
+function pills(options, values, onChange, single = false) {
+  const wrap = el('div', {className: 'pills'});
+  const draw = () => wrap.replaceChildren(...options.map(o => el('button', {type: 'button', className: 'pill' + (values.includes(o.id) ? ' on' : ''),
+    textContent: o.name, onclick: () => {
+      if (values.includes(o.id)) values.splice(values.indexOf(o.id), 1);
+      else { if (single) values.length = 0; values.push(o.id); }
+      onChange(values); draw();
+    }})));
+  draw();
+  return wrap;
+}
+
+function range(key, f, onChange, suffix) {
+  f[key] = f[key] || {};
+  const opts = (catalog.ranges[key] || []);
+  const id = 'dl-' + key;
+  const dl = el('datalist', {id}, opts.map(v => el('option', {value: v})));
+  const input = side => {
+    const i = el('input', {type: 'number', inputMode: 'numeric', placeholder: side === 'from' ? 'od' : 'do', value: f[key][side] ?? ''});
+    i.setAttribute('list', id);
+    i.oninput = () => { if (i.value === '') delete f[key][side]; else f[key][side] = Number(i.value); onChange(); };
+    return i;
+  };
+  return el('div', {className: 'pair'}, input('from'), input('to'), dl);
+}
+
+async function openEditor(search) {
+  await loadCatalog();
+  const f = JSON.parse(JSON.stringify(search.filters || {}));
+  for (const k of ['make', 'model', 'generation', 'body_type', 'fuel_type', 'gearbox', 'transmission', 'country_origin', 'color', 'door_count'])
+    f[k] = Array.isArray(f[k]) ? f[k] : (f[k] ? [f[k]] : []);
+  const single = k => (f[k] ? [f[k]] : []);
+  const singles = {new_used: single('new_used'), damaged: single('damaged'), private_business: single('private_business')};
+  const nameInput = el('input', {type: 'text', value: search.name || '', placeholder: 'np. Golf diesel do 50 tys. (puste = nazwa z filtrów)'});
+  const info = el('div', {className: 'info', textContent: 'Ustaw filtry — zobaczysz liczbę ogłoszeń.'});
+  const mini = el('div', {className: 'mini'});
+  let timer, seq = 0;
+  const changed = () => { clearTimeout(timer); timer = setTimeout(preview, 900); };
+  const collect = () => {
+    const out = {...f};
+    for (const [k, v] of Object.entries(singles)) { if (v.length) out[k] = v[0]; else delete out[k]; }
+    out.city = cityInput.value.trim();
+    out.dist = city_dist.value;
+    return out;
+  };
+  async function preview() {
+    const mine = ++seq;
+    info.textContent = 'Sprawdzam na otomoto…';
+    try {
+      const p = await post('/api/preview', {filters: collect()});
+      if (mine !== seq) return;
+      info.replaceChildren(el('b', {textContent: `${fmt(p.total)} ogłoszeń`}), ` · ${p.summary}`,
+        ...(p.warning ? [el('div', {className: 'warn', textContent: p.warning})] : []));
+      mini.replaceChildren(...p.ads.map(a => el('a', {href: a.url, target: '_blank', rel: 'noopener noreferrer'},
+        a.thumb ? el('img', {src: a.thumb, referrerPolicy: 'no-referrer', loading: 'lazy'}) : null, `${fmt(a.price)} zł · ${a.year || ''}`)));
+    } catch (e) { if (mine === seq) info.textContent = e.message; }
+  }
+  const models = () => f.make.flatMap(m => (catalog.models[m] || []).map(o => ({...o, label: f.make.length > 1 ?
+    `${(catalog.makes.find(x => x.id === m) || {}).name || m} ${o.name}` : o.name})));
+  const generations = () => (f.make.length === 1 && f.model.length === 1 && catalog.generations[`${f.make[0]}/${f.model[0]}`]) || [];
+  let modelPick, genPick;
+  const genField = el('div', {className: 'field'});
+  const drawGen = () => {
+    f.generation = f.generation.filter(g => generations().some(o => o.id === g));
+    genPick = multiPick('Generacja (opcjonalnie)', generations, f.generation, changed);
+    genField.replaceChildren(el('span', {className: 'lbl', textContent: 'Generacja'}), genPick);
+    genField.hidden = !generations().length;
+  };
+  const makePick = multiPick('Wpisz markę, np. Volkswagen', () => catalog.makes, f.make, () => {
+    const ok = new Set(models().map(o => o.id));
+    f.model.splice(0, f.model.length, ...f.model.filter(m => ok.has(m)));
+    modelPick.redraw(); drawGen(); changed();
+  });
+  modelPick = multiPick('Model (najpierw wybierz markę)', models, f.model, () => { drawGen(); changed(); });
+  drawGen();
+  const enumOpts = k => catalog.enums[k] || [];
+  const cityInput = el('input', {type: 'text', value: f.city || '', placeholder: 'np. Kraków (puste = cała Polska)'});
+  cityInput.oninput = changed;
+  const city_dist = el('select', {}, el('option', {value: '', textContent: 'tylko to miasto'}),
+    enumOpts('dist').filter(o => o.id !== '0').map(o => el('option', {value: o.id, textContent: `+ ${o.name} km`})));
+  city_dist.value = f.dist || '';
+  city_dist.onchange = changed;
+  const flag = (key, label) => {
+    const c = el('input', {type: 'checkbox', checked: !!f[key]});
+    c.onchange = () => { if (c.checked) f[key] = true; else delete f[key]; changed(); };
+    return el('label', {className: 'switch'}, c, label);
+  };
+  const field = (label, control, full) => el('div', {className: 'field' + (full ? ' full' : '')}, el('span', {className: 'lbl', textContent: label}), control);
+  const save = el('button', {className: 'btn primary', textContent: search.id ? 'Zapisz zmiany' : 'Zapisz i śledź'});
+  save.onclick = async () => {
+    save.disabled = true;
+    try {
+      await post('/api/searches', {id: search.id, name: nameInput.value.trim(), filters: collect(), enabled: search.enabled !== false});
+      close(); showView('searches');
+    } catch (e) { alert(e.message); save.disabled = false; }
+  };
+  const close = () => { $('editor').hidden = true; $('editor').replaceChildren(); };
+  const form = el('div', {className: 'form'},
+    el('h2', {}, search.id ? 'Edytuj wyszukiwanie' : 'Nowe wyszukiwanie', el('button', {className: 'btn', textContent: '✕', onclick: close})),
+    el('div', {className: 'grid'},
+      field('Nazwa', nameInput, true),
+      field('Marka pojazdu', makePick), field('Model pojazdu', modelPick),
+      genField, field('Typ nadwozia', pills(enumOpts('body_type'), f.body_type, changed), true),
+      field('Cena (zł)', range('price', f, changed)), field('Rok produkcji', range('year', f, changed)),
+      field('Przebieg (km)', range('mileage', f, changed)), field('Rodzaj paliwa', pills(enumOpts('fuel_type'), f.fuel_type, changed)),
+      field('Skrzynia biegów', pills(enumOpts('gearbox'), f.gearbox, changed)), field('Stan', pills(enumOpts('new_used'), singles.new_used, changed, true)),
+      field('Lokalizacja', el('div', {className: 'pair'}, cityInput, city_dist), true),
+      el('details', {className: 'more', open: ['transmission', 'country_origin', 'color', 'door_count'].some(k => f[k].length) ||
+          ['engine_capacity', 'engine_power'].some(k => f[k] && Object.keys(f[k]).length) || ['damaged', 'private_business'].some(k => singles[k].length) ||
+          ['no_accident', 'original_owner', 'service_record', 'registered'].some(k => f[k])},
+        el('summary', {textContent: 'Więcej filtrów: silnik, napęd, uszkodzenia, sprzedający, historia…'}),
+        el('div', {className: 'grid'},
+          field('Pojemność (cm³)', range('engine_capacity', f, changed)), field('Moc (KM)', range('engine_power', f, changed)),
+          field('Napęd', pills(enumOpts('transmission'), f.transmission, changed), true),
+          field('Stan uszkodzeń', pills(enumOpts('damaged'), singles.damaged, changed, true)),
+          field('Sprzedający', pills(enumOpts('private_business'), singles.private_business, changed, true)),
+          field('Kraj pochodzenia', multiPick('np. Polska, Niemcy', () => enumOpts('country_origin'), f.country_origin, changed)),
+          field('Liczba drzwi', pills(enumOpts('door_count'), f.door_count, changed)),
+          field('Kolor', pills(enumOpts('color'), f.color, changed), true),
+          field('Historia i stan', el('div', {className: 'pills'}, flag('no_accident', 'Bezwypadkowy'), flag('original_owner', 'Pierwszy właściciel'),
+            flag('service_record', 'Serwisowany w ASO'), flag('registered', 'Zarejestrowany w Polsce')), true)))),
+    el('div', {className: 'foot'}, el('div', {style: 'flex:1 1 260px'}, info, mini), el('button', {className: 'btn', textContent: 'Anuluj', onclick: close}), save));
+  $('editor').replaceChildren(form);
+  $('editor').hidden = false;
+  $('editor').onclick = e => { if (e.target === $('editor')) close(); };
+  preview();
+}
+
+api('/api/searches').then(r => {
+  $('sCount').textContent = r.searches.filter(s => s.enabled).length || '';
+  if (state.view === 'searches' || !r.searches.length) showView('searches');
+}).catch(() => {});
 </script>
 </body>
 </html>

@@ -51,8 +51,6 @@ def parse_searches(text):
         name, _, link = line.rpartition('|') if '|' in line else ('', '', line)
         url = normalize_search_url(link)
         searches.append(((name.strip() or describe_url(url))[:60], url))
-    if not searches:
-        raise ValueError('Wklej przynajmniej jeden link do wyszukiwania z otomoto.pl.')
     names = [n for n, _ in searches]
     if len(set(names)) != len(names):
         raise ValueError('Nazwy wyszukiwań muszą być różne.')
@@ -123,6 +121,12 @@ def ad_from_node(node):
 
 def parse(html):
     """→ (liczba wszystkich wyników, [ogłoszenia])."""
+    info = parse_search(html)
+    return info['total'], info['ads']
+
+
+def parse_search(html):
+    """→ {'total', 'ads', 'city', 'filters'} — także do podglądu wyszukiwania w panelu."""
     match = NEXT_DATA.search(html or '')
     if not match:
         raise ParseError('Brak danych strony (__NEXT_DATA__) — otomoto mogło zmienić stronę albo pokazać weryfikację.')
@@ -138,5 +142,7 @@ def parse(html):
         search = (payload or {}).get('advertSearch') if isinstance(payload, dict) else None
         if search and isinstance(search.get('edges'), list):
             ads = [ad_from_node(e['node']) for e in search['edges'] if (e or {}).get('node', {}).get('id')]
-            return int(search.get('totalCount') or 0), ads
+            city = (((search.get('appliedLocation') or {}).get('city')) or {}).get('name')
+            applied = [f.get('name') for f in search.get('appliedFilters') or []]
+            return {'total': int(search.get('totalCount') or 0), 'ads': ads, 'city': city, 'filters': applied}
     raise ParseError('Na stronie nie ma listy ogłoszeń (zmiana strony otomoto?).')

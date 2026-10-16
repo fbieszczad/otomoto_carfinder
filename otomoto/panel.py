@@ -11,6 +11,8 @@ import socket
 import threading
 from urllib.parse import parse_qs, urlsplit
 
+from . import filters as F
+from . import site as S
 from .store import SORTS, STATUSES
 
 PAGE = Path(__file__).with_name('panel.html')
@@ -41,14 +43,30 @@ def lan_ip():
 
 
 class Panel:
-    def __init__(self, store, token, port=8765, lan=True, on_change=None, searches=()):
+    def __init__(self, store, token, port=8765, lan=True, on_change=None, searches=(), catalog=None, on_searches=None,
+                 fetch=S.fetch):
         self.store = store
         self.token = token
         self.port = port
         self.lan = lan
         self.on_change = on_change or (lambda *a: None)
-        self.searches = list(searches)
+        self.searches = list(searches)      # wyszukiwania z ustawień aplikacji (linki), tylko do odczytu
+        self.catalog = catalog or (lambda: {})
+        self.on_searches = on_searches or (lambda: None)
+        self.fetch = fetch
         self.server = None
+
+    def all_search_names(self):
+        return [s['name'] for s in self.store.searches()] + [n for n, _ in self.searches]
+
+    def preview(self, filters):
+        url = F.build_url(filters)
+        info = S.parse_search(self.fetch(url))
+        warning = None
+        if F.clean(filters).get('city') and not info['city']:
+            warning = 'Otomoto nie rozpoznało miasta — wpisz nazwę jak na otomoto (np. „Kraków”, „Nowy Sącz”).'
+        return {'url': url, 'total': info['total'], 'city': info['city'], 'warning': warning,
+                'ads': info['ads'][:4], 'summary': F.summary(filters, self.catalog())}
 
     def urls(self):
         local = f'http://localhost:{self.port}/?k={self.token}'
@@ -94,20 +112,60 @@ class Panel:
                                               sort=one('sort', 'found'), limit=one('limit', 200), offset=one('offset', 0))
                     return self._send(200, {'ads': items})
                 if url.path == '/api/stats':
-                    return self._send(200, {**panel.store.counts(), 'searches_config': panel.searches,
+                    return self._send(200, {**panel.store.counts(), 'searches_config': [[n, None] for n in panel.all_search_names()],
                                             'statuses': STATUSES, 'sorts': list(SORTS)})
+                if url.path == '/api/catalog':
+                    return self._send(200, panel.catalog())
+                if url.path == '/api/searches':
+                    catalog = panel.catalog()
+                    counts = panel.store.counts()['searches']
+                    saved = [dict(s, summary=F.summary(s['filters'], catalog), ads=counts.get(s['name'], 0)) for s in panel.store.searches()]
+                    links = [{'name': n, 'url': u, 'readonly': True, 'enabled': True, 'summary': 'Link z ustawień aplikacji',
+                              'ads': counts.get(n, 0)} for n, u in panel.searches]
+                    return self._send(200, {'searches': saved + links})
                 return self._send(404, {'error': 'nie ma takiej strony'})
+
+            def _json(self):
+                length = min(int(self.headers.get('Content-Length') or 0), 100_000)
+                return json.loads(self.rfile.read(length) or b'{}')
+
+            def do_DELETE(self):
+                url = urlsplit(self.path)
+                if not self._authorized(parse_qs(url.query)):
+                    return self._send(403, {'error': 'brak dostępu'})
+                parts = url.path.strip('/').split('/')
+                if len(parts) == 3 and parts[:2] == ['api', 'searches'] and parts[2].isdigit():
+                    if panel.store.delete_search(parts[2]):
+                        panel.on_searches()
+                        return self._send(200, {'ok': True})
+                return self._send(404, {'error': 'nie ma takiego wyszukiwania'})
 
             def do_POST(self):
                 url = urlsplit(self.path)
                 if not self._authorized(parse_qs(url.query)):
                     return self._send(403, {'error': 'brak dostępu'})
                 parts = url.path.strip('/').split('/')
+                if url.path == '/api/preview':
+                    try:
+                        return self._send(200, panel.preview(self._json().get('filters') or {}))
+                    except Exception as exc:
+                        return self._send(502, {'error': f'Nie udało się sprawdzić na otomoto: {str(exc)[:200]}'})
+                if url.path == '/api/searches':
+                    try:
+                        body = self._json()
+                        filters = F.clean(body.get('filters') or {})
+                        name = (body.get('name') or '').strip() or F.short_name(filters, panel.catalog())
+                        if name in [n for n, _ in panel.searches]:
+                            raise ValueError('Ta nazwa jest już użyta przez link z ustawień aplikacji.')
+                        search_id = panel.store.save_search(name, filters, F.build_url(filters), body.get('enabled', True), body.get('id'))
+                    except (ValueError, TypeError) as exc:
+                        return self._send(400, {'error': str(exc)})
+                    panel.on_searches()
+                    return self._send(200, {'id': search_id})
                 if len(parts) != 3 or parts[:2] != ['api', 'ads']:
                     return self._send(404, {'error': 'nie ma takiej strony'})
                 try:
-                    length = min(int(self.headers.get('Content-Length') or 0), 10_000)
-                    body = json.loads(self.rfile.read(length) or b'{}')
+                    body = self._json()
                     ad_id = parts[2]
                     changed = False
                     if 'status' in body:

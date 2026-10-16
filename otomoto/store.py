@@ -34,6 +34,9 @@ class Store:
                 first_seen TEXT, last_seen TEXT, status TEXT NOT NULL DEFAULT 'new', note TEXT NOT NULL DEFAULT '',
                 baseline INTEGER NOT NULL DEFAULT 0, price_history TEXT NOT NULL DEFAULT '[]')''')
             self.db.execute('CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT)')
+            self.db.execute('''CREATE TABLE IF NOT EXISTS searches (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE, filters TEXT NOT NULL DEFAULT '{}',
+                url TEXT NOT NULL, enabled INTEGER NOT NULL DEFAULT 1, created TEXT, updated TEXT)''')
 
     # --- meta ---
     def get_meta(self, key, default=None):
@@ -45,6 +48,39 @@ class Store:
         with self.lock, self.db:
             self.db.execute('INSERT INTO meta(key, value) VALUES(?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
                             (key, str(value)))
+
+    # --- wyszukiwania (z panelu) ---
+    def searches(self, enabled_only=False):
+        sql = 'SELECT * FROM searches' + (' WHERE enabled = 1' if enabled_only else '') + ' ORDER BY id'
+        with self.lock:
+            rows = self.db.execute(sql).fetchall()
+        return [dict(r, filters=json.loads(r['filters'] or '{}'), enabled=bool(r['enabled'])) for r in rows]
+
+    def save_search(self, name, filters, url, enabled=True, search_id=None):
+        name = (name or '').strip()[:60]
+        if not name:
+            raise ValueError('Podaj nazwę wyszukiwania.')
+        stamp = now()
+        with self.lock, self.db:
+            try:
+                if search_id:
+                    old = self.db.execute('SELECT name FROM searches WHERE id = ?', (int(search_id),)).fetchone()
+                    if not old:
+                        raise ValueError('Nie ma takiego wyszukiwania.')
+                    self.db.execute('UPDATE searches SET name = ?, filters = ?, url = ?, enabled = ?, updated = ? WHERE id = ?',
+                                    (name, json.dumps(filters, ensure_ascii=False), url, int(bool(enabled)), stamp, int(search_id)))
+                    if old['name'] != name:
+                        self.db.execute('UPDATE ads SET search = ? WHERE search = ?', (name, old['name']))
+                    return int(search_id)
+                cur = self.db.execute('INSERT INTO searches (name, filters, url, enabled, created, updated) VALUES (?, ?, ?, ?, ?, ?)',
+                                      (name, json.dumps(filters, ensure_ascii=False), url, int(bool(enabled)), stamp, stamp))
+                return cur.lastrowid
+            except sqlite3.IntegrityError:
+                raise ValueError(f'Wyszukiwanie o nazwie „{name}” już istnieje.') from None
+
+    def delete_search(self, search_id):
+        with self.lock, self.db:
+            return self.db.execute('DELETE FROM searches WHERE id = ?', (int(search_id),)).rowcount > 0
 
     # --- ogłoszenia ---
     def upsert(self, ad, search, baseline=False):

@@ -4,6 +4,7 @@ import tempfile
 import unittest
 import urllib.request
 
+from otomoto import filters as F
 from otomoto import site as S
 from otomoto.panel import Panel
 from otomoto.store import Store
@@ -67,8 +68,7 @@ class SiteTests(unittest.TestCase):
     def test_parse_searches(self):
         out = S.parse_searches(f'# komentarz\nGolf | {URL}\n\n{URL}/od-2015')
         self.assertEqual([n for n, _ in out], ['Golf', 'toyota corolla od-2015'])
-        with self.assertRaises(ValueError):
-            S.parse_searches('')
+        self.assertEqual(S.parse_searches(''), [])
         with self.assertRaises(ValueError):
             S.parse_searches(f'A | {URL}\nA | {URL}/od-2015')
 
@@ -163,7 +163,8 @@ class WatcherTests(unittest.TestCase):
     def test_config(self):
         cfg = Config.from_settings({'searches': URL, 'interval': 10})
         self.assertEqual((cfg.interval, cfg.pages, cfg.notify_new, cfg.lan), (10, 3, True, True))
-        for bad in ({'interval': 1}, {'pages': 11}, {'searches': ''}):
+        self.assertEqual(Config.from_settings({}).searches, [])
+        for bad in ({'interval': 1}, {'pages': 11}, {'searches': 'https://olx.pl/x'}):
             with self.assertRaises(ValueError):
                 Config.from_settings({'searches': URL, **bad})
 
@@ -193,6 +194,115 @@ class PanelTests(unittest.TestCase):
             self.assertEqual(changes, ['7'])
             stats = json.loads(opener.open(base + '/api/stats?k=abcd1234').read())
             self.assertEqual(stats['status']['fav'], 1)
+        finally:
+            panel.stop()
+
+
+CATALOG_STATES = [
+    {'filterId': 'filter_enum_make', 'conditions': [], 'values': [{'values': [{'id': 'volkswagen', 'name': 'Volkswagen', 'counter': 9}]}]},
+    {'filterId': 'filter_enum_model', 'conditions': [{'filterId': 'filter_enum_make', 'value': 'volkswagen'}],
+     'values': [{'values': [{'id': 'golf', 'name': 'Golf', 'counter': 5}]}]},
+    {'filterId': 'filter_enum_generation', 'conditions': [{'filterId': 'filter_enum_make', 'value': 'volkswagen'},
+                                                          {'filterId': 'filter_enum_model', 'value': 'golf'}],
+     'values': [{'values': [{'id': 'gen-vii', 'name': 'VII (2012-2020)'}]}]},
+    {'filterId': 'filter_enum_fuel_type', 'conditions': [], 'values': [{'values': [{'id': 'diesel', 'name': 'Diesel'}]}]},
+    {'filterId': 'filter_float_price', 'conditions': [], 'values': [{'values': [{'id': '20000', 'name': '20000'}]}]},
+]
+
+
+class FilterTests(unittest.TestCase):
+    def test_build_url_like_otomoto(self):
+        url = F.build_url({'make': ['volkswagen'], 'model': ['golf'], 'fuel_type': ['diesel', 'petrol'], 'price': {'from': '20 000', 'to': 50000},
+                           'year': {'from': 2015}, 'city': 'Nowy Sącz', 'dist': '50', 'no_accident': True, 'bogus': 1})
+        self.assertTrue(url.startswith('https://www.otomoto.pl/osobowe/nowy-sacz?'))
+        for part in ('search%5Bfilter_enum_make%5D=volkswagen', 'search%5Bfilter_enum_fuel_type%5D%5B0%5D=diesel',
+                     'search%5Bfilter_enum_fuel_type%5D%5B1%5D=petrol', 'search%5Bfilter_float_price%3Afrom%5D=20000',
+                     'search%5Bfilter_float_price%3Ato%5D=50000', 'search%5Bfilter_float_year%3Afrom%5D=2015', 'search%5Bdist%5D=50',
+                     'search%5Bfilter_enum_no_accident%5D=1', 'search%5Border%5D=created_at_first%3Adesc'):
+            self.assertIn(part, url)
+        self.assertNotIn('bogus', url)
+        # promień bez miasta nic nie znaczy; odwrócony zakres jest poprawiany
+        self.assertNotIn('dist', F.build_url({'dist': '50'}))
+        self.assertEqual(F.clean({'price': {'from': 9, 'to': 1}})['price'], {'from': 1, 'to': 9})
+        self.assertEqual(F.build_url({}), 'https://www.otomoto.pl/osobowe?search%5Border%5D=created_at_first%3Adesc')
+
+    def test_catalog_and_summary(self):
+        data = {'filters': {'states': CATALOG_STATES}}
+        html = '<script id="__NEXT_DATA__" type="application/json">' + json.dumps(
+            {'props': {'pageProps': {'urqlState': {'x': {'data': json.dumps(data)}}}}}) + '</script>'
+        catalog = F.catalog_from_html(html)
+        self.assertEqual(catalog['makes'], [{'id': 'volkswagen', 'name': 'Volkswagen', 'count': 9}])
+        self.assertEqual(catalog['models']['volkswagen'][0]['name'], 'Golf')
+        self.assertEqual(catalog['generations']['volkswagen/golf'][0]['id'], 'gen-vii')
+        self.assertEqual(catalog['ranges']['price'], [20000])
+        text = F.summary({'make': ['volkswagen'], 'model': ['golf'], 'fuel_type': ['diesel'], 'price': {'to': 50000}, 'city': 'Kraków', 'dist': '25'}, catalog)
+        self.assertEqual(text, 'Volkswagen Golf · Diesel · Cena do 50 000 zł · Kraków +25 km')
+        self.assertEqual(F.summary({}), 'Wszystkie osobowe')
+        name = F.short_name({'make': ['volkswagen'], 'model': ['golf'], 'fuel_type': ['diesel'], 'price': {'to': 50000},
+                             'year': {'from': 2015}, 'city': 'Kraków', 'dist': '50'}, catalog, limit=45)
+        self.assertEqual(name, 'Volkswagen Golf · Diesel · Cena do 50 000 zł')
+
+    def test_shipped_catalog_is_complete(self):
+        catalog = json.loads((Path(__file__).parent.parent / 'catalog.json').read_text(encoding='utf-8'))
+        self.assertGreater(len(catalog['makes']), 150)
+        self.assertIn('golf', [m['id'] for m in catalog['models']['volkswagen']])
+        self.assertIn('diesel', [v['id'] for v in catalog['enums']['fuel_type']])
+
+
+class SavedSearchTests(unittest.TestCase):
+    def test_store_crud_and_rename_moves_ads(self):
+        store = Store(':memory:')
+        sid = store.save_search('Golf', {'make': ['volkswagen']}, 'https://www.otomoto.pl/osobowe?x')
+        store.upsert(ad(1), 'Golf')
+        with self.assertRaises(ValueError):
+            store.save_search('Golf', {}, 'u')
+        store.save_search('Golf VII', {'make': ['volkswagen']}, 'u2', enabled=False, search_id=sid)
+        self.assertEqual(store.get('1')['search'], 'Golf VII')
+        self.assertEqual(store.searches(enabled_only=True), [])
+        self.assertTrue(store.delete_search(sid))
+        self.assertEqual(store.searches(), [])
+
+    def test_watcher_uses_panel_searches(self):
+        ctx = FakeCtx()
+        store = Store(':memory:')
+        store.save_search('Golf', {}, S.normalize_search_url(URL))
+        calls = []
+        w = Watcher(ctx, Config(searches=[]), store, fetch=lambda u: calls.append(u) or page([ad(1)]), sleep_between=lambda: True)
+        self.assertEqual([n for n, _ in w.active_searches()], ['Golf'])
+        w.run_check()
+        self.assertEqual(store.get('1')['search'], 'Golf')
+
+    def test_panel_search_api(self):
+        store = Store(':memory:')
+        woke = []
+        fetched = []
+        panel = Panel(store, 'abcd1234', port=0, lan=False, on_searches=lambda: woke.append(1),
+                      fetch=lambda u: fetched.append(u) or page([ad(5)], total=77), catalog=lambda: {})
+        panel.start()
+        base = f'http://127.0.0.1:{panel.server.server_address[1]}'
+        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+
+        def call(method, path, body=None):
+            req = urllib.request.Request(base + path + ('&' if '?' in path else '?') + 'k=abcd1234', method=method,
+                                         data=json.dumps(body).encode() if body is not None else None, headers={'Content-Type': 'application/json'})
+            return json.loads(opener.open(req).read())
+        try:
+            preview = call('POST', '/api/preview', {'filters': {'make': ['volkswagen'], 'city': 'Atlantyda'}})
+            self.assertEqual(preview['total'], 77)
+            self.assertIn('nie rozpoznało miasta', preview['warning'])
+            self.assertIn('filter_enum_make', fetched[0])
+            created = call('POST', '/api/searches', {'name': 'Golf', 'filters': {'make': ['volkswagen']}})
+            listed = call('GET', '/api/searches')['searches']
+            self.assertEqual((listed[0]['name'], listed[0]['summary'], listed[0]['enabled']), ('Golf', 'volkswagen', True))
+            self.assertIn('filter_enum_make%5D=volkswagen', listed[0]['url'])
+            call('POST', '/api/searches', {'id': created['id'], 'name': 'Golf 2', 'filters': {}, 'enabled': False})
+            self.assertEqual(store.searches()[0]['name'], 'Golf 2')
+            with self.assertRaises(urllib.error.HTTPError) as err:
+                call('POST', '/api/searches', {'name': '', 'filters': {}, 'id': 999})
+            self.assertEqual(err.exception.code, 400)
+            call('DELETE', f"/api/searches/{created['id']}")
+            self.assertEqual(store.searches(), [])
+            self.assertEqual(len(woke), 3)
         finally:
             panel.stop()
 

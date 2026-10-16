@@ -12,10 +12,15 @@ Skrypt przegląda kilka stron i pamięta numery wszystkich widzianych ogłoszeń
 
 ## Jak używać
 
-1. Na otomoto.pl ustaw filtry (marka, model, rocznik, cena, przebieg, paliwo…) i skopiuj adres strony z wynikami.
-2. W ScriptPlatformFB: **+ Dodaj skrypt** → to repozytorium → **Zainstaluj**.
-3. W polu **Wyszukiwania** wklej linki — jeden w linii, opcjonalnie z nazwą: `Golf diesel | https://www.otomoto.pl/...`.
-4. **Start**. Pierwszy przegląd zapisuje obecne ogłoszenia jako znane (bez powiadomień), potem co kilka minut łapie nowe.
+1. W ScriptPlatformFB: **+ Dodaj skrypt** → to repozytorium → **Zainstaluj** → **Start**. Otworzy się panel w przeglądarce.
+2. W panelu: **🔎 Wyszukiwania → + Nowe wyszukiwanie**. Filtry jak na otomoto: marka (kilka naraz), model, generacja,
+   nadwozie, cena, rok, przebieg, paliwo, skrzynia, stan, lokalizacja z promieniem, a w „Więcej filtrów”: pojemność, moc,
+   napęd, uszkodzenia, sprzedający, kraj pochodzenia, drzwi, kolor, bezwypadkowy, pierwszy właściciel, ASO.
+   Na dole od razu widać, ile ogłoszeń pasuje (i kilka zdjęć). **Zapisz i śledź**.
+3. Dodaj tyle wyszukiwań, ile chcesz. Każde możesz edytować, skopiować, wyłączyć albo usunąć — z komputera i z telefonu.
+4. Nowe wyszukiwanie: pierwszy przegląd zapisuje obecne ogłoszenia jako znane (bez powiadomień), potem łapacz łapie nowe.
+
+Zamiast formularza możesz też wkleić gotowe linki z otomoto w ustawieniach skryptu w aplikacji.
 
 ## Telefon i komputer
 
@@ -34,5 +39,5 @@ Dane są w folderze danych skryptu (`ogloszenia.db`). Klucz panelu: `panel-klucz
 ```
 python -m unittest discover -s tests -t .
 ```
-`otomoto/site.py` — linki i odczyt wyników, `store.py` — baza SQLite, `panel.py` + `panel.html` — panel WWW,
+`otomoto/site.py` — linki i odczyt wyników, `filters.py` — filtry, katalog marek/modeli i budowanie adresu, `store.py` — baza SQLite, `panel.py` + `panel.html` — panel WWW,
 `watcher.py` — pętla, powiadomienia, komendy. Bez zewnętrznych bibliotek (tylko standardowy Python).

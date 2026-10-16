@@ -1,9 +1,9 @@
 {
   "id": "otomoto-lapacz",
   "name": "Łapacz Otomoto",
-  "description": "Łapie nowe ogłoszenia z Twoich wyszukiwań na otomoto (także te, które wyszukiwarka pokazuje z opóźnieniem) i odkłada je do panelu na komputerze i telefonie.",
+  "description": "Łapie nowe ogłoszenia z Twoich wyszukiwań na otomoto (także te, które wyszukiwarka pokazuje z opóźnieniem). Wyszukiwania ustawiasz w panelu jak na otomoto, na komputerze i telefonie.",
   "icon": "icon.png",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "protocol": 1,
   "runtime": {
     "type": "python",
@@ -11,14 +11,6 @@
     "python": "3.12"
   },
   "settings": [
-    {
-      "key": "searches",
-      "type": "textarea",
-      "label": "Wyszukiwania (jedno w linii)",
-      "placeholder": "Golf diesel | https://www.otomoto.pl/osobowe/volkswagen/golf/od-2015?search%5Bfilter_enum_fuel_type%5D=diesel",
-      "required": true,
-      "help": "Ustaw filtry na otomoto.pl i skopiuj adres strony z wynikami. Opcjonalnie nazwa przed znakiem |. Sortowanie skrypt ustawi sam."
-    },
     {
       "key": "interval",
       "type": "integer",
@@ -79,6 +71,14 @@
       "min": 1024,
       "max": 65535,
       "default": 8765
+    },
+    {
+      "key": "searches",
+      "type": "textarea",
+      "label": "Dodatkowe linki z otomoto (opcjonalnie)",
+      "placeholder": "Golf diesel | https://www.otomoto.pl/osobowe/volkswagen/golf?...",
+      "required": false,
+      "help": "Wyszukiwania najwygodniej dodasz w panelu skryptu (zakładka „Wyszukiwania”: marka, model, cena, rok, przebieg… jak na otomoto). Tu możesz dodatkowo wkleić gotowe linki, jeden w linii."
     }
   ]
 }
