@@ -20,6 +20,9 @@ REQUEST_GAP = (1.5, 3.5)         # s między zapytaniami do otomoto
 MAX_BACKOFF = 30 * 60
 CATALOG_MAX_AGE = 7 * 24 * 3600
 SHIPPED_CATALOG = Path(__file__).resolve().parent.parent / 'catalog.json'
+HELP = ('Komendy (kanał <twój kanał>-ctl, „cmd otomoto-lapacz …”):\n'
+        'nowe — nowe auta na telefon · ulubione — ulubione · status — podsumowanie\n'
+        'pause / resume — wstrzymaj / wznów · fav|seen|reject <id> — oznacz ogłoszenie')
 COMMANDS = {'fav': 'fav', 'ulubione': 'fav', 'seen': 'seen', 'widzialem': 'seen', 'widziałem': 'seen',
             'reject': 'rejected', 'odrzuc': 'rejected', 'odrzuć': 'rejected', 'new': 'new'}
 
@@ -128,6 +131,14 @@ class Watcher:
             elif word in ('resume', 'wznow', 'wznów'):
                 self.paused = False
                 log.info('TELEFON — sprawdzanie wznowione.')
+            elif word in ('nowe', 'new', 'lista') and len(words) == 1:
+                self.send_list('new', 'Nowe')
+            elif word in ('ulubione', 'fav') and len(words) == 1:
+                self.send_list('fav', 'Ulubione')
+            elif word in ('status', 'stan') and len(words) == 1:
+                self.send_status()
+            elif word in ('pomoc', 'help') and len(words) == 1:
+                self.ctx.notify('Łapacz — komendy', HELP, event='help', priority=2, stop=False)
             elif word in COMMANDS and len(words) == 2:
                 if self.store.set_status(words[1], COMMANDS[word]):
                     ad = self.store.get(words[1])
@@ -136,7 +147,34 @@ class Watcher:
                 else:
                     log.warning('TELEFON — nie znam ogłoszenia %s.', words[1])
             else:
-                log.warning('TELEFON — nieznana komenda „%s”. Dostępne: pause, resume, fav/seen/reject <id>.', text)
+                log.warning('TELEFON — nieznana komenda „%s”. %s', text, HELP.replace('\n', ' '))
+
+    def send_list(self, status, label, limit=5):
+        """Ogłoszenia z panelu wysłane na telefon (działa też poza domem — przez ntfy)."""
+        ads = self.store.query(status=status, sort='found', limit=limit)
+        total = self.store.counts()['status'][status]
+        log.info('TELEFON — wysyłam listę „%s” (%s z %s).', label, len(ads), total)
+        if not ads:
+            self.ctx.notify(f'{label}: brak ogłoszeń', 'Nic tu teraz nie ma.', event=f'list-{status}', priority=2, stop=False)
+            return
+        for ad in reversed(ads):
+            actions = [('👀 Widziałem', f"seen {ad['id']}"), ('✖ Odrzuć', f"reject {ad['id']}")]
+            if status != 'fav':
+                actions.insert(0, ('⭐ Ulubione', f"fav {ad['id']}"))
+            self.ctx.notify(f"{full_title(ad)} — {price_text(ad.get('price'), ad.get('currency'))}"[:120],
+                            '\n'.join(p for p in (describe(ad), ', '.join(x for x in (ad.get('city'), ad.get('region')) if x), f"[{ad['search']}]") if p),
+                            event=f"list-{ad['id']}", priority=3, click=ad.get('url'), image=ad.get('thumb'), stop=False, actions=actions)
+        if total > len(ads):
+            self.ctx.notify(f'{label}: jeszcze {total - len(ads)}', 'Pozostałe zobaczysz w panelu (w domu) albo po oznaczeniu tych.',
+                            event=f'list-more-{status}', priority=2, stop=False)
+
+    def send_status(self):
+        counts = self.store.counts()['status']
+        lines = [f"Nowe: {counts['new']} · Ulubione: {counts['fav']} · Widziane: {counts['seen']} · Odrzucone: {counts['rejected']}",
+                 f'Wyszukiwania: {len(self.active_searches())} · sprawdzanie co {self.cfg.interval} min',
+                 f"Ostatnie sprawdzenie: {self.last_ok or 'jeszcze nie'}" + (' · WSTRZYMANY' if self.paused else '')]
+        self.ctx.notify('Łapacz Otomoto — status', '\n'.join(lines), event='status', priority=2, stop=False,
+                        actions=[('Pokaż nowe', 'nowe'), ('Wznów' if self.paused else 'Wstrzymaj', 'resume' if self.paused else 'pause')])
 
     # --- jedno sprawdzenie ---
     def run_check(self):

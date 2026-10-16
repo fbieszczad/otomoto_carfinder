@@ -3,7 +3,7 @@
   "name": "Łapacz Otomoto",
   "description": "Łapie nowe ogłoszenia z Twoich wyszukiwań na otomoto (także te, które wyszukiwarka pokazuje z opóźnieniem). Wyszukiwania ustawiasz w panelu jak na otomoto, na komputerze i telefonie.",
   "icon": "icon.png",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "panel": "Wyszukiwania i ogłoszenia",
   "protocol": 1,
   "runtime": {

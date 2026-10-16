@@ -159,6 +159,15 @@ class WatcherTests(unittest.TestCase):
         w.handle_commands()
         self.assertEqual(w.store.get('1')['status'], 'fav')
         self.assertTrue(w.paused)
+        ctx.notifications.clear()
+        ctx.commands = ['ulubione', 'nowe', 'status']
+        w.handle_commands()
+        titles = [n[0] for n in ctx.notifications]
+        self.assertTrue(titles[0].startswith('Auto 1 — 50 000 zł'))
+        self.assertEqual(ctx.notifications[0][2]['actions'][0], ('👀 Widziałem', 'seen 1'))
+        self.assertEqual(titles[1], 'Nowe: brak ogłoszeń')
+        self.assertIn('Ulubione: 1', ctx.notifications[2][1])
+        self.assertEqual(ctx.notifications[2][2]['actions'][1], ('Wznów', 'resume'))
 
     def test_config(self):
         cfg = Config.from_settings({'searches': URL, 'interval': 10})

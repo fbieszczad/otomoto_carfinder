@@ -31,7 +31,9 @@ Zamiast formularza możesz też wkleić gotowe linki z otomoto w ustawieniach sk
 - **Powiadomienia ntfy** (gdziekolwiek jesteś): zdjęcie, cena, rok, przebieg, silnik; kliknięcie otwiera ogłoszenie,
   przyciski **⭐ Ulubione / 👀 Widziałem / ✖ Odrzuć** zapisują wybór w panelu. Przy kilku nowych naraz — jedno zbiorcze.
   Obniżki cen (od ustawionej kwoty) też przychodzą jako powiadomienie.
-- Komendy na kanał `<twój kanał>-ctl`: `cmd otomoto-lapacz pause`, `… resume`, `… fav <id>`, `… seen <id>`, `… reject <id>`.
+- **Poza domem** wszystko idzie przez ntfy (dane komórkowe wystarczą). Komendy na kanał `<twój kanał>-ctl`:
+  `cmd otomoto-lapacz nowe` (nowe auta na telefon, ze zdjęciem i przyciskami), `… ulubione`, `… status`,
+  `… pause` / `… resume`, `… fav|seen|reject <id>`, `… pomoc`.
 
 Dane są w folderze danych skryptu (`ogloszenia.db`). Klucz panelu: `panel-klucz.txt` (usuń plik, żeby wygenerować nowy).
 
