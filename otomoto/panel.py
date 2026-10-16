@@ -69,7 +69,7 @@ class Panel:
                 'ads': info['ads'][:4], 'summary': F.summary(filters, self.catalog())}
 
     def urls(self):
-        local = f'http://localhost:{self.port}/?k={self.token}'
+        local = f'http://127.0.0.1:{self.port}/?k={self.token}'
         ip = lan_ip() if self.lan else None
         return local, (f'http://{ip}:{self.port}/?k={self.token}' if ip else None)
 

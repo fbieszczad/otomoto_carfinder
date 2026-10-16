@@ -12,7 +12,8 @@ Skrypt przegląda kilka stron i pamięta numery wszystkich widzianych ogłoszeń
 
 ## Jak używać
 
-1. W ScriptPlatformFB: **+ Dodaj skrypt** → to repozytorium → **Zainstaluj** → **Start**. Otworzy się panel w przeglądarce.
+1. W ScriptPlatformFB: **+ Dodaj skrypt** → to repozytorium → **Zainstaluj** → **Start**. Panel pojawi się w oknie skryptu
+   (na górze, nad ustawieniami; starsze wersje aplikacji — w przeglądarce, adres jest w logu).
 2. W panelu: **🔎 Wyszukiwania → + Nowe wyszukiwanie**. Filtry jak na otomoto: marka (kilka naraz), model, generacja,
    nadwozie, cena, rok, przebieg, paliwo, skrzynia, stan, lokalizacja z promieniem, a w „Więcej filtrów”: pojemność, moc,
    napęd, uszkodzenia, sprzedający, kraj pochodzenia, drzwi, kolor, bezwypadkowy, pierwszy właściciel, ASO.
@@ -24,7 +25,7 @@ Zamiast formularza możesz też wkleić gotowe linki z otomoto w ustawieniach sk
 
 ## Telefon i komputer
 
-- **Panel** otwiera się w przeglądarce na komputerze. Adres dla telefonu (ta sama sieć Wi-Fi) jest na kafelku i w logu,
+- **Panel** jest w oknie skryptu w aplikacji (przycisk „Otwórz w przeglądarce” otwiera go osobno). Adres dla telefonu (ta sama sieć Wi-Fi) jest na kafelku i w logu,
   np. `http://192.168.1.20:8765/?k=…`. Za pierwszym razem Windows zapyta o zaporę dla Pythona — zezwól dla sieci prywatnej.
   Na telefonie dodaj stronę do ekranu głównego, będzie jak aplikacja.
 - **Powiadomienia ntfy** (gdziekolwiek jesteś): zdjęcie, cena, rok, przebieg, silnik; kliknięcie otwiera ogłoszenie,

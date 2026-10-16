@@ -33,7 +33,7 @@ class Config:
     notify_price: bool = True
     port: int = 8765
     lan: bool = True
-    open_panel: bool = True
+    open_panel: bool = False
     min_drop: int = 500
     extra: dict = field(default_factory=dict)
 
@@ -51,7 +51,7 @@ class Config:
         flag = lambda k, d: d if s.get(k) is None else bool(s.get(k))
         return cls(searches=S.parse_searches(s.get('searches')), interval=interval, pages=pages,
                    notify_new=flag('notify_new', True), notify_price=flag('notify_price', True), port=port,
-                   lan=flag('lan', True), open_panel=flag('open_panel', True), min_drop=int(s.get('min_drop') or 500))
+                   lan=flag('lan', True), open_panel=flag('open_panel', False), min_drop=int(s.get('min_drop') or 500))
 
 
 def describe(ad):
@@ -263,6 +263,8 @@ def run(ctx):
         panel.start()
         watcher.panel_urls = panel.urls()
         log.info('PANEL na komputerze: %s', watcher.panel_urls[0])
+        # Aplikacja pokaże panel w oknie skryptu (starsze wersje aplikacji pominą tę wiadomość).
+        ctx.send({'type': 'panel', 'url': watcher.panel_urls[0], 'label': 'Wyszukiwania i ogłoszenia'})
         if watcher.panel_urls[1]:
             log.info('PANEL na telefonie (ta sama sieć Wi-Fi): %s', watcher.panel_urls[1])
         if cfg.open_panel:

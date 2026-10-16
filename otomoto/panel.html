@@ -164,8 +164,10 @@ function ago(iso) {
   return new Date(iso).toLocaleString('pl-PL', {day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'});
 }
 
+// Klucz z adresu dokładany do każdego zapytania — w oknie aplikacji (ramka) ciasteczka nie działają.
+const KEY = new URLSearchParams(location.search).get('k') || '';
 async function api(path, options) {
-  const r = await fetch(path, options);
+  const r = await fetch(path + (path.includes('?') ? '&' : '?') + 'k=' + encodeURIComponent(KEY), options);
   if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || r.statusText);
   return r.json();
 }

@@ -3,7 +3,8 @@
   "name": "Łapacz Otomoto",
   "description": "Łapie nowe ogłoszenia z Twoich wyszukiwań na otomoto (także te, które wyszukiwarka pokazuje z opóźnieniem). Wyszukiwania ustawiasz w panelu jak na otomoto, na komputerze i telefonie.",
   "icon": "icon.png",
-  "version": "1.1.0",
+  "version": "1.2.0",
+  "panel": "Wyszukiwania i ogłoszenia",
   "protocol": 1,
   "runtime": {
     "type": "python",
@@ -61,8 +62,9 @@
     {
       "key": "open_panel",
       "type": "toggle",
-      "label": "Otwórz panel w przeglądarce przy starcie",
-      "default": true
+      "label": "Otwórz panel także w przeglądarce przy starcie",
+      "default": false,
+      "help": "Panel jest w tym oknie po kliknięciu Start. W przeglądarce przydaje się na drugim monitorze."
     },
     {
       "key": "port",
