@@ -1,0 +1,84 @@
+{
+  "id": "otomoto-lapacz",
+  "name": "Łapacz Otomoto",
+  "description": "Łapie nowe ogłoszenia z Twoich wyszukiwań na otomoto (także te, które wyszukiwarka pokazuje z opóźnieniem) i odkłada je do panelu na komputerze i telefonie.",
+  "icon": "icon.png",
+  "version": "1.0.0",
+  "protocol": 1,
+  "runtime": {
+    "type": "python",
+    "entry": "main.py",
+    "python": "3.12"
+  },
+  "settings": [
+    {
+      "key": "searches",
+      "type": "textarea",
+      "label": "Wyszukiwania (jedno w linii)",
+      "placeholder": "Golf diesel | https://www.otomoto.pl/osobowe/volkswagen/golf/od-2015?search%5Bfilter_enum_fuel_type%5D=diesel",
+      "required": true,
+      "help": "Ustaw filtry na otomoto.pl i skopiuj adres strony z wynikami. Opcjonalnie nazwa przed znakiem |. Sortowanie skrypt ustawi sam."
+    },
+    {
+      "key": "interval",
+      "type": "integer",
+      "label": "Sprawdzaj co (minuty)",
+      "min": 2,
+      "max": 180,
+      "default": 5
+    },
+    {
+      "key": "pages",
+      "type": "integer",
+      "label": "Ile stron wyników przeglądać",
+      "min": 1,
+      "max": 10,
+      "default": 3,
+      "help": "Ogłoszenia po moderacji trafiają często niżej na listę — dlatego skrypt przegląda kilka stron (32 ogłoszenia na stronę)."
+    },
+    {
+      "key": "notify_new",
+      "type": "toggle",
+      "label": "Powiadomienie na telefon o każdym nowym ogłoszeniu",
+      "default": true
+    },
+    {
+      "key": "notify_price",
+      "type": "toggle",
+      "label": "Powiadomienie o obniżce ceny",
+      "default": true
+    },
+    {
+      "key": "min_drop",
+      "type": "integer",
+      "label": "Minimalna obniżka do powiadomienia (zł)",
+      "min": 0,
+      "max": 100000,
+      "default": 500,
+      "visible_if": {
+        "notify_price": true
+      }
+    },
+    {
+      "key": "lan",
+      "type": "toggle",
+      "label": "Panel dostępny z telefonu w domowej sieci Wi-Fi",
+      "default": true,
+      "help": "Przy pierwszym starcie Windows może zapytać o zgodę zapory dla Pythona — zezwól dla sieci prywatnych."
+    },
+    {
+      "key": "open_panel",
+      "type": "toggle",
+      "label": "Otwórz panel w przeglądarce przy starcie",
+      "default": true
+    },
+    {
+      "key": "port",
+      "type": "integer",
+      "label": "Port panelu",
+      "min": 1024,
+      "max": 65535,
+      "default": 8765
+    }
+  ]
+}

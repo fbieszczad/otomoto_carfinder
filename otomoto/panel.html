@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f131a">
+<meta name="referrer" content="no-referrer">
+<title>Łapacz Otomoto</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #0f131a; --card: #171c25; --line: #2a3240; --text: #e6e9ef; --muted: #98a2b3;
+    --accent: #5b82f0; --fav: #fbbf24; --ok: #4ade80; --bad: #f87171; --new: #38bdf8;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.4 system-ui, -apple-system, 'Segoe UI', sans-serif; }
+  header { position: sticky; top: 0; z-index: 5; background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(8px);
+           border-bottom: 1px solid var(--line); padding: 10px 16px; }
+  .bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; max-width: 1200px; margin: 0 auto; }
+  h1 { font-size: 17px; margin: 0 auto 0 0; }
+  .tabs { display: flex; gap: 6px; overflow-x: auto; max-width: 1200px; margin: 8px auto 0; scrollbar-width: none; }
+  .tab { border: 1px solid var(--line); background: var(--card); color: var(--text); border-radius: 999px; padding: 6px 12px;
+         white-space: nowrap; cursor: pointer; font: inherit; }
+  .tab.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 20%, var(--card)); }
+  .tab b { color: var(--muted); font-weight: 500; margin-left: 4px; }
+  select, input[type=search] { background: var(--card); color: var(--text); border: 1px solid var(--line); border-radius: 8px;
+                               padding: 7px 9px; font: inherit; min-width: 0; }
+  input[type=search] { flex: 1 1 160px; }
+  main { max-width: 1200px; margin: 0 auto; padding: 12px 16px 40px; display: grid; gap: 12px;
+         grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
+  .ad { background: var(--card); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; }
+  .ad.st-new { border-color: color-mix(in srgb, var(--new) 55%, var(--line)); }
+  .ad.st-fav { border-color: var(--fav); }
+  .ad.st-rejected { opacity: .55; }
+  .top { display: flex; gap: 10px; padding: 10px; text-decoration: none; color: inherit; }
+  .top img { width: 120px; height: 90px; object-fit: cover; border-radius: 8px; background: #0a0d13; flex: none; }
+  .title { font-weight: 600; overflow-wrap: anywhere; }
+  .price { font-size: 18px; font-weight: 700; margin-top: 2px; }
+  .drop { color: var(--ok); font-size: 13px; font-weight: 600; }
+  .up { color: var(--bad); font-size: 13px; font-weight: 600; }
+  .chips { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 10px; }
+  .chip { font-size: 12.5px; padding: 2px 8px; border-radius: 999px; background: #0a0d13; border: 1px solid var(--line); color: var(--muted); }
+  .meta { color: var(--muted); font-size: 12.5px; padding: 6px 10px 0; }
+  .actions { display: flex; gap: 6px; padding: 10px; margin-top: auto; align-items: center; }
+  .actions button { flex: 1; border: 1px solid var(--line); background: #0a0d13; color: var(--text); border-radius: 8px; padding: 8px 4px;
+                    font: inherit; font-size: 12.5px; cursor: pointer; min-height: 52px; display: flex; flex-direction: column;
+                    align-items: center; justify-content: center; gap: 2px; line-height: 1.15; }
+  .actions .ico { font-size: 17px; }
+  .actions button.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 22%, #0a0d13); }
+  .note { margin: 0 10px 10px; width: calc(100% - 20px); background: #0a0d13; color: var(--text); border: 1px solid var(--line);
+          border-radius: 8px; padding: 7px 9px; font: inherit; font-size: 13.5px; }
+  .badge { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 5px; margin-right: 4px;
+           vertical-align: middle; background: var(--new); color: #04131c; }
+  .empty { grid-column: 1 / -1; text-align: center; color: var(--muted); padding: 40px 0; }
+  .stamp { color: var(--muted); font-size: 12px; }
+  @media (max-width: 420px) { main { grid-template-columns: 1fr; padding: 10px; } .top img { width: 104px; height: 78px; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <h1>🚗 Łapacz Otomoto</h1>
+    <span class="stamp" id="stamp"></span>
+  </div>
+  <div class="tabs" id="tabs"></div>
+  <div class="bar" style="margin-top:8px">
+    <input type="search" id="q" placeholder="Szukaj: model, miasto, notatka…">
+    <select id="search"><option value="">Wszystkie wyszukiwania</option></select>
+    <select id="sort">
+      <option value="found">Najpierw złapane</option>
+      <option value="created">Data dodania na otomoto</option>
+      <option value="price">Cena rosnąco</option>
+      <option value="price_desc">Cena malejąco</option>
+      <option value="mileage">Przebieg rosnąco</option>
+      <option value="year">Rocznik od najnowszego</option>
+    </select>
+  </div>
+</header>
+<main id="list"></main>
+<script>
+const LABELS = {new: 'Nowe', fav: 'Ulubione', seen: 'Widziane', rejected: 'Odrzucone', '': 'Wszystkie'};
+const ORDER = ['new', 'fav', 'seen', 'rejected', ''];
+const state = {status: 'new', search: '', q: '', sort: 'found'};
+try { Object.assign(state, JSON.parse(localStorage.getItem('panel') || '{}')); } catch (e) {}
+const $ = id => document.getElementById(id);
+const fmt = n => n == null ? '' : n.toLocaleString('pl-PL');
+const el = (tag, props = {}, ...kids) => { const e = Object.assign(document.createElement(tag), props); kids.flat().forEach(k => k != null && e.append(k)); return e; };
+
+function ago(iso) {
+  if (!iso) return '';
+  const s = (Date.now() - new Date(iso)) / 1000;
+  if (s < 60) return 'przed chwilą';
+  if (s < 3600) return `${Math.floor(s / 60)} min temu`;
+  if (s < 86400) return `${Math.floor(s / 3600)} h temu`;
+  return new Date(iso).toLocaleString('pl-PL', {day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'});
+}
+
+async function api(path, options) {
+  const r = await fetch(path, options);
+  if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || r.statusText);
+  return r.json();
+}
+
+async function loadStats() {
+  const s = await api('/api/stats');
+  $('tabs').replaceChildren(...ORDER.map(k => el('button', {
+    className: 'tab' + (state.status === k ? ' on' : ''), onclick: () => { state.status = k; refresh(); }
+  }, LABELS[k], el('b', {textContent: k ? s.status[k] : Object.values(s.status).reduce((a, b) => a + b, 0)}))));
+  const sel = $('search');
+  if (sel.options.length === 1) {
+    for (const [name] of s.searches_config) sel.append(el('option', {value: name, textContent: name}));
+    sel.value = state.search;
+  }
+}
+
+function card(ad) {
+  const drop = ad.price_history.length > 1 ? ad.price_history[0][1] - ad.price : 0;
+  const chips = [ad.year, ad.mileage != null && `${fmt(ad.mileage)} km`, ad.engine_cc && `${fmt(ad.engine_cc)} cm³`,
+                 ad.power_hp && `${ad.power_hp} KM`, ad.fuel, ad.gearbox].filter(Boolean);
+  const note = el('input', {className: 'note', value: ad.note || '', placeholder: 'Notatka (np. dzwoniłem, umówione oględziny)…'});
+  note.onchange = () => update(ad.id, {note: note.value}).catch(e => alert(e.message));
+  const button = (status, icon, label) => el('button', {
+    className: ad.status === status ? 'on' : '', title: label,
+    onclick: () => update(ad.id, {status: ad.status === status && status !== 'new' ? 'seen' : status}).then(refresh).catch(e => alert(e.message))
+  }, el('span', {className: 'ico', textContent: icon}), label ? el('span', {textContent: label}) : null);
+  return el('article', {className: `ad st-${ad.status}`},
+    el('a', {className: 'top', href: ad.url, target: '_blank', rel: 'noopener noreferrer'},
+      ad.thumb ? el('img', {src: ad.thumb, alt: '', loading: 'lazy', referrerPolicy: 'no-referrer'}) : el('div'),
+      el('div', {},
+        el('div', {className: 'title'}, ad.status === 'new' ? el('span', {className: 'badge', textContent: 'NOWE'}) : null,
+           ad.version && !ad.title.toLowerCase().includes(ad.version.toLowerCase()) ? `${ad.title} ${ad.version}` : ad.title),
+        el('div', {className: 'price'}, `${fmt(ad.price)} ${ad.currency === 'PLN' ? 'zł' : ad.currency || ''} `,
+           drop > 0 ? el('span', {className: 'drop', textContent: `↓ ${fmt(drop)} zł`}) : drop < 0 ? el('span', {className: 'up', textContent: `↑ ${fmt(-drop)} zł`}) : null),
+        el('div', {className: 'stamp', textContent: [ad.city, ad.region].filter(Boolean).join(', ')}))),
+    el('div', {className: 'chips'}, chips.map(c => el('span', {className: 'chip', textContent: c}))),
+    el('div', {className: 'meta', textContent: `Złapane ${ago(ad.first_seen)} · dodane na otomoto ${ago(ad.created_at)} · ${ad.search}${ad.seller ? ' · ' + ad.seller : ''}`}),
+    el('div', {className: 'actions'}, button('fav', '⭐', 'Ulubione'), button('seen', '👀', 'Widziałem'), button('rejected', '✖', 'Odrzuć'),
+       ad.status !== 'new' ? button('new', '↺', 'Jako nowe') : null),
+    note);
+}
+
+async function update(id, body) {
+  return api(`/api/ads/${encodeURIComponent(id)}`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+}
+
+async function refresh() {
+  try { localStorage.setItem('panel', JSON.stringify(state)); } catch (e) {}
+  const p = new URLSearchParams({sort: state.sort, limit: 300});
+  if (state.status) p.set('status', state.status);
+  if (state.search) p.set('search', state.search);
+  if (state.q) p.set('q', state.q);
+  try {
+    const [{ads}] = await Promise.all([api('/api/ads?' + p), loadStats()]);
+    $('list').replaceChildren(...(ads.length ? ads.map(card) : [el('div', {className: 'empty', textContent: 'Nic tu nie ma.'})]));
+    $('stamp').textContent = 'odświeżono ' + new Date().toLocaleTimeString('pl-PL', {hour: '2-digit', minute: '2-digit'});
+  } catch (e) {
+    $('stamp').textContent = 'Brak połączenia z komputerem — czy skrypt działa?';
+  }
+}
+
+$('q').value = state.q; $('sort').value = state.sort;
+let timer;
+$('q').oninput = () => { clearTimeout(timer); timer = setTimeout(() => { state.q = $('q').value.trim(); refresh(); }, 300); };
+$('sort').onchange = () => { state.sort = $('sort').value; refresh(); };
+$('search').onchange = () => { state.search = $('search').value; refresh(); };
+document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
+setInterval(() => { if (!document.hidden) refresh(); }, 60000);
+refresh();
+</script>
+</body>
+</html>
