@@ -18,6 +18,7 @@ log = logging.getLogger('otomoto')
 MAX_SINGLE_NOTIFICATIONS = 5     # więcej nowych naraz → jedno zbiorcze powiadomienie
 REQUEST_GAP = (1.5, 3.5)         # s między zapytaniami do otomoto
 MAX_BACKOFF = 30 * 60
+PAGE_SIZE = 32                   # ogłoszeń na stronie wyników otomoto
 CATALOG_MAX_AGE = 7 * 24 * 3600
 SHIPPED_CATALOG = Path(__file__).resolve().parent.parent / 'catalog.json'
 HELP = ('Komendy (kanał <twój kanał>-ctl, „cmd otomoto-lapacz …”):\n'
@@ -199,7 +200,8 @@ class Watcher:
                         fresh.append((ad, name))
                     elif change == 'price_drop' and old - ad['price'] >= self.cfg.min_drop:
                         drops.append((ad, old, name))
-                if len(ads) < 32 or page * 32 >= total:
+                # Strona bywa krótsza niż 32 (np. 31) — kończymy dopiero na pustej albo po ostatnim wyniku.
+                if not ads or page * PAGE_SIZE >= total:
                     break
             if baseline:
                 self.store.set_meta(f'baseline:{url}', time.time())

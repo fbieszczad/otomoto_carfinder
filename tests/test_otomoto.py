@@ -145,6 +145,12 @@ class WatcherTests(unittest.TestCase):
         self.assertEqual(len(calls), 2)
         self.assertTrue(calls[1].endswith('&page=2'))
 
+    def test_short_page_does_not_end_the_scan(self):
+        short = [ad(i) for i in range(31)]
+        w, ctx, calls = self.make([page(short, total=100), page([ad(100)], total=100), page([ad(101)], total=100)])
+        w.run_check()
+        self.assertEqual(len(calls), 3)
+
     def test_many_new_ads_give_one_summary(self):
         w, ctx, calls = self.make([page([ad(0)]), page([ad(i) for i in range(1, 9)])])
         w.run_check()
