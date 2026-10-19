@@ -9,6 +9,7 @@ from pathlib import Path
 import secrets
 import socket
 import threading
+import webbrowser
 from urllib.parse import parse_qs, urlsplit
 
 from . import filters as F
@@ -119,7 +120,9 @@ class Panel:
                 if url.path == '/api/searches':
                     catalog = panel.catalog()
                     counts = panel.store.counts()['searches']
-                    saved = [dict(s, summary=F.summary(s['filters'], catalog), ads=counts.get(s['name'], 0)) for s in panel.store.searches()]
+                    favs = panel.store.fav_counts()
+                    saved = [dict(s, summary=F.summary(s['filters'], catalog), ads=counts.get(s['name'], 0), fav=favs.get(s['name'], 0))
+                             for s in panel.store.searches()]
                     links = [{'name': n, 'url': u, 'readonly': True, 'enabled': True, 'summary': 'Link z ustawień aplikacji',
                               'ads': counts.get(n, 0)} for n, u in panel.searches]
                     return self._send(200, {'searches': saved + links})
@@ -135,9 +138,11 @@ class Panel:
                     return self._send(403, {'error': 'brak dostępu'})
                 parts = url.path.strip('/').split('/')
                 if len(parts) == 3 and parts[:2] == ['api', 'searches'] and parts[2].isdigit():
-                    if panel.store.delete_search(parts[2]):
+                    found = next((s for s in panel.store.searches() if str(s['id']) == parts[2]), None)
+                    if found and panel.store.delete_search(parts[2]):
+                        removed = panel.store.delete_ads(found['name']) if parse_qs(url.query).get('ads') == ['1'] else 0
                         panel.on_searches()
-                        return self._send(200, {'ok': True})
+                        return self._send(200, {'ok': True, 'removed': removed})
                 return self._send(404, {'error': 'nie ma takiego wyszukiwania'})
 
             def do_POST(self):
@@ -145,6 +150,16 @@ class Panel:
                 if not self._authorized(parse_qs(url.query)):
                     return self._send(403, {'error': 'brak dostępu'})
                 parts = url.path.strip('/').split('/')
+                if url.path == '/api/open':
+                    # Okno aplikacji nie otwiera linków do nowej karty — otwieramy w przeglądarce na tym komputerze.
+                    target = str(self._json().get('url') or '')
+                    host = urlsplit(target).hostname or ''
+                    if not (target.startswith('https://') and (host == 'otomoto.pl' or host.endswith('.otomoto.pl'))):
+                        return self._send(400, {'error': 'Nieobsługiwany link.'})
+                    if self.client_address[0] not in ('127.0.0.1', '::1'):
+                        return self._send(403, {'error': 'Tylko na komputerze.'})
+                    webbrowser.open(target)
+                    return self._send(200, {'ok': True})
                 if url.path == '/api/preview':
                     try:
                         return self._send(200, panel.preview(self._json().get('filters') or {}))

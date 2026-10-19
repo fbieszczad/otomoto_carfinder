@@ -47,6 +47,17 @@
                     font: inherit; font-size: 12.5px; cursor: pointer; min-height: 52px; display: flex; flex-direction: column;
                     align-items: center; justify-content: center; gap: 2px; line-height: 1.15; }
   .actions .ico { font-size: 17px; }
+  .actions a.open { flex: 1; border: 1px solid var(--accent); background: color-mix(in srgb, var(--accent) 22%, #0a0d13); color: var(--text);
+                    border-radius: 8px; padding: 8px 4px; font-size: 12.5px; min-height: 52px; display: flex; flex-direction: column;
+                    align-items: center; justify-content: center; gap: 2px; line-height: 1.15; text-decoration: none; }
+  dialog.ask { background: var(--card); color: var(--text); border: 1px solid var(--line); border-radius: 14px; max-width: 420px; padding: 18px; }
+  dialog.ask::backdrop { background: rgba(0, 0, 0, .6); }
+  dialog.ask h3 { margin: 0 0 8px; font-size: 17px; }
+  dialog.ask p { margin: 0 0 14px; color: var(--muted); }
+  .ask-btns { display: flex; flex-direction: column; gap: 8px; }
+  .ask-btns .btn { justify-content: center; }
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 40; background: var(--text); color: var(--bg);
+           padding: 10px 16px; border-radius: 20px; font-size: 14px; font-weight: 600; white-space: nowrap; }
   .actions button.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 22%, #0a0d13); }
   .note { margin: 0 10px 10px; width: calc(100% - 20px); background: #0a0d13; color: var(--text); border: 1px solid var(--line);
           border-radius: 8px; padding: 7px 9px; font: inherit; font-size: 13.5px; }
@@ -206,7 +217,9 @@ function card(ad) {
     el('div', {className: 'chips'}, chips.map(c => el('span', {className: 'chip', textContent: c}))),
     el('div', {className: 'meta', textContent: `Złapane ${ago(ad.first_seen)} · dodane na otomoto ${ago(ad.created_at)} · ${ad.search}${ad.seller ? ' · ' + ad.seller : ''}`}),
     el('div', {className: 'actions'}, button('fav', '⭐', 'Ulubione'), button('seen', '👀', 'Widziałem'), button('rejected', '✖', 'Odrzuć'),
-       ad.status !== 'new' ? button('new', '↺', 'Jako nowe') : null),
+       ad.status !== 'new' ? button('new', '↺', 'Jako nowe') : null,
+       el('a', {className: 'open', href: ad.url, target: '_blank', rel: 'noopener noreferrer', title: 'Otwórz ogłoszenie na otomoto'},
+          el('span', {className: 'ico', textContent: '↗'}), el('span', {textContent: 'Otwórz'}))),
     note);
 }
 
@@ -278,11 +291,46 @@ function searchRow(s) {
       s.readonly ? el('span', {className: 'stamp', textContent: 'Link z ustawień aplikacji — zmienisz go w aplikacji.'}) : [
         el('button', {className: 'btn', textContent: '✎ Edytuj', onclick: () => openEditor(s)}),
         el('button', {className: 'btn', textContent: '⧉ Kopiuj', onclick: () => openEditor({...s, id: null, name: s.name + ' (kopia)'})}),
-        el('button', {className: 'btn danger', textContent: '🗑 Usuń', onclick: async () => {
-          if (confirm(`Usunąć wyszukiwanie „${s.name}”? Złapane ogłoszenia zostaną.`)) { await api('/api/searches/' + s.id, {method: 'DELETE'}); loadSearches(); }
-        }})],
+        el('button', {className: 'btn danger', textContent: '🗑 Usuń', onclick: () => askDelete(s)})],
       el('a', {className: 'btn', href: s.url, target: '_blank', rel: 'noopener noreferrer', textContent: '↗ Otwórz na otomoto'})));
 }
+function askDelete(s) {
+  const extra = s.ads - (s.fav || 0);
+  const dlg = el('dialog', {className: 'ask'});
+  const go = async (withAds) => {
+    dlg.close();
+    try {
+      const r = await api('/api/searches/' + s.id + (withAds ? '?ads=1' : ''), {method: 'DELETE'});
+      loadSearches(); refresh();
+      if (withAds) toast(`Usunięto wyszukiwanie i ${plural(r.removed, 'ogłoszenie', 'ogłoszenia', 'ogłoszeń')}.`);
+    } catch (e) { alert(e.message); }
+  };
+  dlg.append(
+    el('h3', {textContent: `Usunąć „${s.name}”?`}),
+    el('p', {textContent: s.ads ? `To wyszukiwanie złapało ${plural(s.ads, 'ogłoszenie', 'ogłoszenia', 'ogłoszeń')}${s.fav ? ` (w tym ${s.fav} ${s.fav === 1 ? 'ulubione' : 'ulubionych'})` : ''}. Usunąć też złapane auta?` : 'Nie złapało jeszcze żadnych ogłoszeń.'}),
+    el('div', {className: 'ask-btns'},
+      s.ads && extra > 0 ? el('button', {className: 'btn danger', textContent: `Usuń z autami (${extra})` + (s.fav ? ' — ulubione zostaną' : ''), onclick: () => go(true)}) : null,
+      el('button', {className: 'btn', textContent: s.ads ? 'Usuń tylko wyszukiwanie' : 'Usuń', onclick: () => go(false)}),
+      el('button', {className: 'btn', textContent: 'Anuluj', onclick: () => dlg.close()})));
+  dlg.addEventListener('close', () => dlg.remove());
+  document.body.append(dlg);
+  dlg.showModal();
+}
+function plural(n, one, few, many) {
+  return `${n} ${n === 1 ? one : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? few : many}`;
+}
+function toast(text) {
+  const t = el('div', {className: 'toast', textContent: text});
+  document.body.append(t); setTimeout(() => t.remove(), 3000);
+}
+// W oknie aplikacji linki „do nowej karty” są blokowane — na komputerze otwieramy je w przeglądarce przez skrypt.
+document.addEventListener('click', e => {
+  const a = e.target.closest && e.target.closest('a[target=_blank]');
+  if (!a || !['127.0.0.1', 'localhost'].includes(location.hostname)) return;
+  e.preventDefault();
+  api('/api/open', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({url: a.href})})
+    .then(() => toast('Otwieram w przeglądarce…')).catch(() => window.open(a.href, '_blank'));
+});
 $('addSearch').onclick = () => openEditor({id: null, name: '', filters: {}, enabled: true});
 
 /* Wybór wielu wartości z listą do przeszukania (marka, model, kraj…). */

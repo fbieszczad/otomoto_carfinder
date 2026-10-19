@@ -315,9 +315,17 @@ class SavedSearchTests(unittest.TestCase):
             with self.assertRaises(urllib.error.HTTPError) as err:
                 call('POST', '/api/searches', {'name': '', 'filters': {}, 'id': 999})
             self.assertEqual(err.exception.code, 400)
-            call('DELETE', f"/api/searches/{created['id']}")
+            store.upsert(ad(1), 'Golf 2')
+            store.upsert(ad(2), 'Golf 2')
+            store.set_status('2', 'fav')
+            self.assertEqual(call('GET', '/api/searches')['searches'][0]['fav'], 1)
+            removed = call('DELETE', f"/api/searches/{created['id']}?ads=1")
             self.assertEqual(store.searches(), [])
+            self.assertEqual((removed['removed'], store.get('1'), store.get('2')['status']), (1, None, 'fav'))   # ulubione zostają
             self.assertEqual(len(woke), 3)
+            with self.assertRaises(urllib.error.HTTPError) as err:
+                call('POST', '/api/open', {'url': 'https://evil.example/x'})
+            self.assertEqual(err.exception.code, 400)
         finally:
             panel.stop()
 

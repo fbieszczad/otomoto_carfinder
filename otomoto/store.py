@@ -139,6 +139,17 @@ class Store:
             rows = self.db.execute(sql, [*args, max(1, min(int(limit), 500)), max(0, int(offset))]).fetchall()
         return [_row(r) for r in rows]
 
+    def delete_ads(self, search, keep_fav=True):
+        """Usuwa ogłoszenia złapane przez wyszukiwanie (ulubione zostają). Zwraca liczbę usuniętych."""
+        with self.lock, self.db:
+            return self.db.execute('DELETE FROM ads WHERE search = ?' + (" AND status != 'fav'" if keep_fav else ''),
+                                   (search,)).rowcount
+
+    def fav_counts(self):
+        with self.lock:
+            rows = self.db.execute("SELECT search, COUNT(*) AS n FROM ads WHERE status = 'fav' GROUP BY search").fetchall()
+        return {r['search']: r['n'] for r in rows}
+
     def counts(self):
         with self.lock:
             rows = self.db.execute('SELECT status, COUNT(*) AS n FROM ads GROUP BY status').fetchall()
