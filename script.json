@@ -82,5 +82,62 @@
       "required": false,
       "help": "Wyszukiwania najwygodniej dodasz w panelu skryptu (zakładka „Wyszukiwania”: marka, model, cena, rok, przebieg… jak na otomoto). Tu możesz dodatkowo wkleić gotowe linki, jeden w linii."
     }
+  ],
+  "phone_stop": false,
+  "stop_commands": [
+    "pause",
+    "wstrzymaj"
+  ],
+  "notifications": [
+    {
+      "key": "ad",
+      "label": "Nowe ogłoszenie",
+      "description": "Każde złapane ogłoszenie ze zdjęciem i przyciskami.",
+      "events": [
+        "ad-*"
+      ]
+    },
+    {
+      "key": "summary",
+      "label": "Wiele nowych naraz",
+      "description": "Jedno zbiorcze powiadomienie, gdy przyjdzie dużo ogłoszeń.",
+      "events": [
+        "summary"
+      ]
+    },
+    {
+      "key": "drop",
+      "label": "Obniżka ceny",
+      "description": "Ogłoszenie, które już znasz, potaniało.",
+      "events": [
+        "drop-*"
+      ]
+    },
+    {
+      "key": "replies",
+      "label": "Odpowiedzi na komendy",
+      "description": "Status, lista nowych, pomoc — gdy o nie poprosisz z telefonu.",
+      "events": [
+        "status",
+        "help",
+        "list-*"
+      ]
+    },
+    {
+      "key": "error",
+      "label": "Problemy ze sprawdzaniem",
+      "description": "Otomoto nie odpowiada kilka razy z rzędu.",
+      "events": [
+        "error"
+      ]
+    },
+    {
+      "key": "started",
+      "label": "Start łapacza",
+      "description": "Potwierdzenie, że łapacz ruszył.",
+      "events": [
+        "started"
+      ]
+    }
   ]
 }
